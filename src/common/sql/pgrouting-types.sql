@@ -3,7 +3,6 @@
 
 
 
-
 CREATE TYPE pgr_costResult AS
 (
     seq integer,

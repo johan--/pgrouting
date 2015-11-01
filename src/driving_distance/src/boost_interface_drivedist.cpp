@@ -50,7 +50,7 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
                        float8 distance,
                        bool directedFlag,
                        bool equiCostFlag,
-                       pgr_path_element3_t **ret_path, int *path_count,
+                       General_path_element_t **ret_path, size_t *path_count,
                        char ** err_msg) {
     try {
         // in c code this should this must have been checked:
@@ -61,7 +61,7 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
         #endif
 
         graphType gType = directedFlag? DIRECTED: UNDIRECTED;
-        const int initial_size = 1;
+        const int initial_size = total_tuples;
 
         std::deque< Path >paths;
         typedef boost::adjacency_list < boost::vecS, boost::vecS,
@@ -71,11 +71,22 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
             boost::bidirectionalS,
             boost_vertex_t, boost_edge_t > DirectedGraph;
 
-        Pgr_dijkstra < DirectedGraph > digraph(gType, initial_size);
-        Pgr_dijkstra < UndirectedGraph > undigraph(gType, initial_size);
-
         std::vector< int64_t > start_vertices(start_vertex, start_vertex + s_len);
 
+    if (directedFlag) {
+      Pgr_base_graph< DirectedGraph > digraph(gType, initial_size);
+      Pgr_dijkstra< Pgr_base_graph< DirectedGraph > > fn_dijkstra;
+      digraph.graph_insert_data(data_edges, total_tuples);
+      fn_dijkstra.dijkstra_dd(digraph, paths, start_vertices, distance);
+    } else {
+      Pgr_base_graph< UndirectedGraph > undigraph(gType, initial_size);
+      Pgr_dijkstra< Pgr_base_graph< UndirectedGraph > > fn_dijkstra;
+      undigraph.graph_insert_data(data_edges, total_tuples);
+      fn_dijkstra.dijkstra_dd(undigraph, paths, start_vertices, distance);
+    }
+
+
+#if 0
         if (directedFlag) {
             digraph.initialize_graph(data_edges, total_tuples);
             digraph.dijkstra_dd(paths, start_vertices, distance);
@@ -83,16 +94,16 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
             undigraph.initialize_graph(data_edges, total_tuples);
             undigraph.dijkstra_dd(paths, start_vertices, distance);
         }
-
+#endif
 
         if (equiCostFlag == false) {
-            int count(count_tuples(paths));
+            size_t count(count_tuples(paths));
             if (count == 0) {
               *err_msg = strdup("NOTICE: No return values was found");
-              *ret_path = noPathFound3(-1, path_count, (*ret_path));
+              *ret_path = noPathFound(path_count, (*ret_path));
               return 0;
             }
-            *ret_path = pgr_get_memory3(count, (*ret_path));
+            *ret_path = get_memory(count, (*ret_path));
             int trueCount(collapse_paths(ret_path, paths));
             *path_count = trueCount;
             // assert (count == trueCount);
@@ -102,12 +113,12 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
             size_t count(path.size());
             if (count == 0) {
               *err_msg = strdup("NOTICE: No return values was found");
-              *ret_path = noPathFound3(-1, path_count, (*ret_path));
+              *ret_path = noPathFound(path_count, (*ret_path));
               return 0;
             }
-            int trueCount = 0;
-            *ret_path = pgr_get_memory3(count, (*ret_path));
-            path.dpPrint(ret_path, trueCount);
+            size_t trueCount = 0;
+            *ret_path = get_memory(count, (*ret_path));
+            path.generate_postgres_data(ret_path, trueCount);
             *path_count = trueCount;
             // assert (count == trueCount);
         }
@@ -133,7 +144,7 @@ int  do_pgr_driving_many_to_dist(pgr_edge_t  *data_edges, int64_t total_tuples,
 int  do_pgr_driving_distance(pgr_edge_t  *data_edges, int64_t total_tuples,
                        int64_t  start_vertex, float8 distance,
                        bool directedFlag,
-                       pgr_path_element3_t **ret_path, int *path_count,
+                       General_path_element_t **ret_path, size_t *path_count,
                        char ** err_msg) {
     try {
         // in c code this should have been checked:
@@ -143,7 +154,7 @@ int  do_pgr_driving_distance(pgr_edge_t  *data_edges, int64_t total_tuples,
         std::ostringstream log;
 
         graphType gType = directedFlag? DIRECTED: UNDIRECTED;
-        const int initial_size = 1;
+        const int initial_size = total_tuples;
 
         Path paths;
         typedef boost::adjacency_list < boost::vecS, boost::vecS,
@@ -153,6 +164,19 @@ int  do_pgr_driving_distance(pgr_edge_t  *data_edges, int64_t total_tuples,
             boost::bidirectionalS,
             boost_vertex_t, boost_edge_t > DirectedGraph;
 
+
+    if (directedFlag) {
+      Pgr_base_graph< DirectedGraph > digraph(gType, initial_size);
+      Pgr_dijkstra< Pgr_base_graph< DirectedGraph > > fn_dijkstra;
+      digraph.graph_insert_data(data_edges, total_tuples);
+      fn_dijkstra.dijkstra_dd(digraph, paths, start_vertex, distance);
+    } else {
+      Pgr_base_graph< UndirectedGraph > undigraph(gType, initial_size);
+      Pgr_dijkstra< Pgr_base_graph< UndirectedGraph > > fn_dijkstra;
+      undigraph.graph_insert_data(data_edges, total_tuples);
+      fn_dijkstra.dijkstra_dd(undigraph, paths, start_vertex, distance);
+    }
+#if 0
         Pgr_dijkstra < DirectedGraph > digraph(gType, initial_size);
         Pgr_dijkstra < UndirectedGraph > undigraph(gType, initial_size);
 
@@ -163,11 +187,11 @@ int  do_pgr_driving_distance(pgr_edge_t  *data_edges, int64_t total_tuples,
             undigraph.initialize_graph(data_edges, total_tuples);
             undigraph.dijkstra_dd(paths, start_vertex, distance);
         }
-
+#endif
         if (paths.path.size() == 0) {
             *err_msg = strdup(
                 "NOTICE: No driving distance node found");
-            *ret_path = noPathFound3(-1, path_count, (*ret_path));
+            *ret_path = noPathFound(path_count, (*ret_path));
             return 0;
         }
 
@@ -178,7 +202,7 @@ int  do_pgr_driving_distance(pgr_edge_t  *data_edges, int64_t total_tuples,
 
         // get the space required to store all the paths
         *ret_path = NULL;
-        *ret_path = pgr_get_memory3(count, (*ret_path));
+        *ret_path = get_memory(count, (*ret_path));
 
         int sequence = 0;
         paths.ddPrint(ret_path, sequence, 0);
