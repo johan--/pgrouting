@@ -7,3 +7,6 @@ tools/vagrant/packaging.sh
 *.mo
 .directory
 notUsed
+
+.idea
+
